@@ -1,68 +1,53 @@
-import os
 import requests
-from apkpure.apkpure import ApkPure
+import os
 
-def download_google_photos_apk():
-    # Initialiser l'API
-    api = ApkPure()
+def download_apk(app_id):
+    url = f"https://d.apkpure.com/b/APK/{app_id}?version=latest"
     
-    # Télécharger la dernière version de Google Photos
-    download_path = api.download("com.google.android.apps.photos")
-    
-    if download_path:
-        print(f"APK téléchargé à : {download_path}")
+    # Suivre les redirections pour obtenir le lien direct
+    response = requests.get(url, allow_redirects=True)
+    if response.status_code == 200:
+        apk_url = response.url
+        apk_response = requests.get(apk_url)
+
+        # Vérifier que le téléchargement a réussi
+        if apk_response.status_code == 200:
+            with open(f"{app_id}.apk", 'wb') as apk_file:
+                apk_file.write(apk_response.content)
+            print(f"Downloaded {app_id}.apk successfully.")
+        else:
+            print(f"Failed to download APK from {apk_url}: {apk_response.status_code}")
     else:
-        print("Échec du téléchargement de l'APK.")
+        print(f"Failed to fetch APK page: {response.status_code}")
 
-def download_latest_release(url):
+def download_latest_release(repo, file_pattern):
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
     response = requests.get(url)
-    response.raise_for_status()  # Vérifier si la requête a réussi
-    return response.json()
-
-def get_latest_revanced_cli():
-    url = "https://api.github.com/repos/ReVanced/revanced-cli/releases/latest"
-    release_data = download_latest_release(url)
     
-    # Récupérer le lien de téléchargement du fichier .jar
-    for asset in release_data['assets']:
-        if asset['name'].endswith('-all.jar'):
-            download_url = asset['browser_download_url']
-            print(f"Téléchargement de ReVanced CLI depuis : {download_url}")
-            response = requests.get(download_url)
-            with open('revanced-cli.jar', 'wb') as f:
-                f.write(response.content)
-            print("ReVanced CLI téléchargé.")
+    if response.status_code == 200:
+        assets = response.json().get('assets', [])
+        for asset in assets:
+            if file_pattern in asset['name']:
+                download_url = asset['browser_download_url']
+                download_file(asset['name'], download_url)
+                return
+        print(f"No assets found matching {file_pattern} in {repo}.")
+    else:
+        print(f"Failed to fetch releases from {repo}: {response.status_code}")
 
-def get_latest_revanced_patches():
-    url = "https://api.github.com/repos/ReVanced/revanced-patches/releases/latest"
-    release_data = download_latest_release(url)
-    
-    # Récupérer le lien de téléchargement du fichier .jar
-    for asset in release_data['assets']:
-        if asset['name'].endswith('.jar'):
-            download_url = asset['browser_download_url']
-            print(f"Téléchargement de ReVanced Patches depuis : {download_url}")
-            response = requests.get(download_url)
-            with open('revanced-patches.jar', 'wb') as f:
-                f.write(response.content)
-            print("ReVanced Patches téléchargé.")
-
-def get_latest_revanced_integrations():
-    url = "https://api.github.com/repos/ReVanced/revanced-integrations/releases/latest"
-    release_data = download_latest_release(url)
-    
-    # Récupérer le lien de téléchargement de l'APK des intégrations
-    for asset in release_data['assets']:
-        if asset['name'].endswith('.apk'):
-            download_url = asset['browser_download_url']
-            print(f"Téléchargement de ReVanced Integrations depuis : {download_url}")
-            response = requests.get(download_url)
-            with open('revanced-integrations.apk', 'wb') as f:
-                f.write(response.content)
-            print("ReVanced Integrations téléchargé.")
+def download_file(filename, url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(filename, 'wb') as file:
+            file.write(response.content)
+        print(f"Downloaded {filename} successfully.")
+    else:
+        print(f"Failed to download {filename} from {url}: {response.status_code}")
 
 if __name__ == "__main__":
-    download_google_photos_apk()
-    get_latest_revanced_cli()
-    get_latest_revanced_patches()
-    get_latest_revanced_integrations()
+    download_apk("com.google.android.apps.photos")
+    
+    # Télécharger les dernières releases de ReVanced
+    download_latest_release("ReVanced/revanced-cli", "revanced-cli")
+    download_latest_release("ReVanced/revanced-patches", "revanced-patches")
+    download_latest_release("ReVanced/revanced-integrations", "revanced-integrations")
