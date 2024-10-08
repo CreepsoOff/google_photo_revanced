@@ -3,12 +3,16 @@ import os
 
 def download_apk(app_id):
     url = f"https://d.apkpure.com/b/APK/{app_id}?version=latest"
-    
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    }
+
     # Suivre les redirections pour obtenir le lien direct
-    response = requests.get(url, allow_redirects=True)
+    response = requests.get(url, headers=headers, allow_redirects=True)
     if response.status_code == 200:
         apk_url = response.url
-        apk_response = requests.get(apk_url)
+        apk_response = requests.get(apk_url, headers=headers)
 
         # Vérifier que le téléchargement a réussi
         if apk_response.status_code == 200:
