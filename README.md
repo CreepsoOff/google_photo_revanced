@@ -45,7 +45,7 @@ To use this project, you need to create a GitHub repository and set up GitHub Ac
 
 ## Usage
 
-Once the workflow is set up, any push to the `main` branch will trigger the automated process, creating a new release with the latest patched APK.
+Once the workflow is set up, any push to the `master` branch will trigger the automated process, creating a new release with the latest patched APK.
 
 ## Contributing
 
@@ -53,7 +53,7 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [GPL 3.0](LICENSE).
 
 ## Acknowledgments
 
