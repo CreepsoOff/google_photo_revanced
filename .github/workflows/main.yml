@@ -2,9 +2,6 @@ name: Build and Release
 
 on:
     workflow_dispatch:
-    push:
-     branches:
-       - master
 
 jobs:
   build:
@@ -31,6 +28,11 @@ jobs:
           revanced_cli_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-cli/releases/latest | jq -r '.assets[] | select(.name | test("revanced-cli.*.jar")) | .browser_download_url')
           revanced_patches_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-patches/releases/latest | jq -r '.assets[] | select(.name | test("revanced-patches.*.jar")) | .browser_download_url')
           revanced_integrations_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-integrations/releases/latest | jq -r '.assets[] | select(.name | test("revanced-integrations.*.apk")) | .browser_download_url')
+
+          if [[ -z "$revanced_cli_url" || -z "$revanced_patches_url" || -z "$revanced_integrations_url" ]]; then
+            echo "One or more URLs are missing."
+            exit 1
+          fi
 
           curl -L -o revanced-cli.jar "$revanced_cli_url"
           curl -L -o revanced-patches.jar "$revanced_patches_url"
