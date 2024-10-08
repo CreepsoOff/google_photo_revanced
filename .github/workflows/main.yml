@@ -5,31 +5,29 @@ on:
 
 jobs:
   build:
-    name: Build and Patch APK
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Étape 1: Installer Java
-      - name: Set up Java
-        uses: actions/setup-java@v1
+      # Installer Python
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          java-version: '17'
+          python-version: '3.x'
 
-      # Étape 2: Télécharger l'APK Google Photos
-      - name: Download Google Photos APK
+      # Installer les dépendances
+      - name: Install dependencies
         run: |
-          curl -L -o google_photos_clean.apk https://github.com/CreepsoOff/google_photo_revanced/releases/download/dev0.1/Google.Photos_7.2.0.apk
+          pip install requests apkpure
 
-      # Étape 3: Télécharger ReVanced CLI, Patches, et Integrations
-      - name: Download ReVanced CLI, Patches, and Integrations
+      # Télécharger les APK et les fichiers ReVanced
+      - name: Download APKs and ReVanced files
         run: |
-          curl -L -o revanced-cli.jar https://github.com/ReVanced/revanced-cli/releases/download/v4.6.0/revanced-cli-4.6.0-all.jar
-          curl -L -o revanced-patches.jar https://github.com/ReVanced/revanced-patches/releases/download/v4.17.0-dev.5/revanced-patches-4.17.0-dev.5.jar
-          curl -L -o revanced-integrations.apk https://github.com/ReVanced/revanced-integrations/releases/download/v1.16.0-dev.4/revanced-integrations-1.16.0-dev.4.apk
+          python download_apk.py
 
-      # Étape 4: Patcher l'APK Google Photos
+      # Étape 3: Patcher l'APK Google Photos
       - name: Patch Google Photos APK
         run: |
           java -jar revanced-cli.jar patch \
@@ -38,52 +36,29 @@ jobs:
             google_photos_clean.apk \
             --merge revanced-integrations.apk
 
-      # Étape 5: Lire la version depuis version.txt
-      - name: Read version from version.txt
-        id: read_version
+      # Étape 4: Créer le répertoire de sortie
+      - name: Create output dir
+        run: mkdir -p output
+
+      # Étape 5: Déplacer le fichier patché
+      - name: Move patched APK to output dir
+        run: mv patched_google_photos.apk output/
+
+      # Étape 6: Créer un tag avec la version spécifiée
+      - name: Create tag and release
+        id: create_release
         run: |
-          if [ -f version.txt ]; then
-            version=$(cat version.txt)
-          else
-            version="7.2.0"
-          fi
-          echo "version=${version}" >> $GITHUB_OUTPUT
+          VERSION=$(<version.txt)
+          git tag "$VERSION"
+          git push origin "$VERSION"
+          echo "::set-output name=tag_name::$VERSION"
 
-      # Étape 6: Créer un tag
-      - name: Create tag
-        uses: actions/github-script@v6
+      # Étape 7: Publier la release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/${{ steps.read_version.outputs.version }}',
-              sha: context.sha
-            })
+          tag_name: ${{ steps.create_release.outputs.tag_name }}
+          files: output/patched_google_photos.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Étape 7: Créer une release
-      - name: Create release
-        uses: ncipollo/release-action@v1
-        with:
-          name: ${{ steps.read_version.outputs.version }}
-          tag: ${{ steps.read_version.outputs.version }}
-          makeLatest: "true"
-          omitBody: true
-          omitBodyDuringUpdate: true
-          allowUpdates: true
-          replacesArtifacts: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Étape 8: Pousser la nouvelle release
-      - name: Pushing new release
-        uses: ncipollo/release-action@v1
-        with:
-          name: ${{ steps.read_version.outputs.version }}
-          artifacts: "release_output/*"
-          tag: ${{ steps.read_version.outputs.version }}
-          makeLatest: "true"
-          omitBody: true
-          omitBodyDuringUpdate: true
-          allowUpdates: true
-          replacesArtifacts: true
-          token: ${{ secrets.GITHUB_TOKEN }}
