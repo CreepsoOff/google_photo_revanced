@@ -22,9 +22,24 @@ permissions:
 
 
 jobs:
+  create_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Create Tag
+        id: create_tag
+        run: |
+          TAG_NAME=$(echo "${GITHUB_SHA}" | cut -c1-7)  # Prend les 7 premiers caractères
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     runs-on: ubuntu-latest
-
+    needs: create_tag  # Assure-toi que le tag est créé avant de construire
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -101,24 +116,25 @@ jobs:
           --merge revanced-integrations.apk
 
 
-    # Étape 5: Créer une release avec l'APK patché
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.sha }}
-        release_name: "Patched Google Photos"
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ajout du token d'authentification
+  create_release:
+    runs-on: ubuntu-latest
+    needs: build  # Dépend du job de build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
+      - name: Create GitHub Release
+        id: create_release
+        run: |
+          TAG_NAME=$(echo "${GITHUB_SHA}" | cut -c1-7)  # Utilise le même TAG_NAME
+          gh release create "$TAG_NAME" ./patched_google_photos.apk --title "Patched Google Photos" --notes "Release for $TAG_NAME"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Utilise le token d'accès personnel
 
-    # Étape 6: Uploader l'APK patché dans la release
-    - name: Upload Patched APK
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./patched_google_photos.apk
-        asset_name: patched_google_photos.apk
-        asset_content_type: application/vnd.android.package-archive
+      - name: Upload Patched APK
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./patched_google_photos.apk
+          asset_name: patched_google_photos.apk
+          asset_content_type: application/vnd.android.package-archive
