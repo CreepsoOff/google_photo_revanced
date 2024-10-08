@@ -1,6 +1,7 @@
 name: Patch Google Photo APK
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -20,37 +21,6 @@ permissions:
   statuses: write
 
 jobs:
-  tag:
-    name: Create tag
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Get version info
-        id: version_info
-        run: |
-          echo "build_version=r$(echo ${GITHUB_SHA} | cut -c1-9)" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: Create tag
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/${{ steps.version_info.outputs.build_version }}',
-              sha: context.sha
-            })
-
-      - name: Create release
-        uses: ncipollo/release-action@v1
-        with:
-          name: ${{ steps.version_info.outputs.build_version }}
-          tag: ${{ steps.version_info.outputs.build_version }}
-          makeLatest: "true"
-          omitBody: true
-          omitBodyDuringUpdate: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   build:
     name: Build and Patch APK
     runs-on: ubuntu-latest
@@ -94,6 +64,37 @@ jobs:
         run: |
           mv patched_google_photos.apk release_output/
 
+      - name: Get version info
+        id: version_info
+        run: |
+          echo "build_version=r$(echo ${GITHUB_SHA} | cut -c1-9)" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Create tag
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ steps.version_info.outputs.build_version }}',
+              sha: context.sha
+            })
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ steps.version_info.outputs.build_version }}
+          tag: ${{ steps.version_info.outputs.build_version }}
+          makeLatest: "true"
+          omitBody: true
+          omitBodyDuringUpdate: true
+          allowUpdates: true
+          replacesArtifacts: true
+          owner: ${{ env.RYUJINX_TARGET_RELEASE_CHANNEL_OWNER }}
+          repo: ${{ env.RYUJINX_TARGET_RELEASE_CHANNEL_REPO }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Pushing new release
         uses: ncipollo/release-action@v1
         with:
@@ -105,4 +106,6 @@ jobs:
           omitBodyDuringUpdate: true
           allowUpdates: true
           replacesArtifacts: true
+          owner: ${{ env.RYUJINX_TARGET_RELEASE_CHANNEL_OWNER }}
+          repo: ${{ env.RYUJINX_TARGET_RELEASE_CHANNEL_REPO }}
           token: ${{ secrets.GITHUB_TOKEN }}
