@@ -1,9 +1,10 @@
-name: Patched Google Photos
+name: Patch Google Photos APK
 
 on:
+  workflow_dispatch:  # Permet de démarrer le workflow manuellement
   push:
     branches:
-      - main
+      - master
 
 permissions:
   actions: write
