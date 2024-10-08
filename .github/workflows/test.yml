@@ -1,0 +1,61 @@
+name: Patch Google Photos APK
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Étape 1: Installer Java
+    - name: Set up Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: '17'
+
+    # Étape 2: Télécharger l'APK Google Photos
+    - name: Download Google Photos APK
+      run: |
+        wget https://github.com/CreepsoOff/google_photo_revanced/releases/download/dev0.1/Google.Photos_7.2.0.apk -O google_photos_clean.apk
+
+    # Étape 3: Télécharger ReVanced CLI, Patches, et Integrations
+    - name: Download ReVanced CLI, Patches, and Integrations
+      run: |
+        wget https://github.com/revanced/revanced-cli/releases/download/v3.0.0/revanced-cli-3.0.0-all.jar
+        wget https://github.com/revanced/revanced-patches/releases/download/v3.0.0/revanced-patches-3.0.0.jar
+        wget https://github.com/revanced/revanced-integrations/releases/download/v0.0.99/revanced-integrations-0.0.99.apk
+
+    # Étape 4: Patcher l'APK Google Photos
+    - name: Patch Google Photos APK
+      run: |
+        java -jar revanced-cli-3.0.0-all.jar \
+          -a google_photos_clean.apk \
+          -o patched_google_photos.apk \
+          -b revanced-patches-3.0.0.jar \
+          -m revanced-integrations-0.0.99.apk \
+          -i spoof-features-patch
+
+    # Étape 5: Créer une release avec l'APK patché
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ github.sha }}
+        release_name: "Patched Google Photos"
+        draft: false
+        prerelease: false
+
+    # Étape 6: Uploader l'APK patché dans la release
+    - name: Upload Patched APK
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./patched_google_photos.apk
+        asset_name: patched_google_photos.apk
+        asset_content_type: application/vnd.android.package-archive
