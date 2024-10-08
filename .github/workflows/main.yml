@@ -95,6 +95,9 @@ jobs:
         release_name: "Patched Google Photos"
         draft: false
         prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ajout du token d'authentification
+
 
     # Étape 6: Uploader l'APK patché dans la release
     - name: Upload Patched APK
