@@ -1,7 +1,6 @@
-name: Patch Google Photo APK
+name: Patched Google Photos
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - master
@@ -28,33 +27,76 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download ReVanced CLI
-        run: |
-          curl -L -o revanced-cli.jar https://github.com/ReVanced/revanced-cli/releases/download/v4.6.0/revanced-cli-4.6.0-all.jar && break
-          sleep 5
+      # Étape 1: Installer Java
+      - name: Set up Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: '17'
 
-      - name: Download ReVanced Patches
+      # Étape 2: Télécharger l'APK Google Photos
+      - name: Download Google Photos APK
         run: |
-          curl -L -o revanced-patches.jar https://github.com/ReVanced/revanced-patches/releases/download/v4.17.0-dev.5/revanced-patches-4.17.0-dev.5.jar && break
-          sleep 5
+          retry=0
+          max_retries=5
+          while [ $retry -lt $max_retries ]; do
+            curl -L -o google_photos_clean.apk https://github.com/CreepsoOff/google_photo_revanced/releases/download/dev0.1/Google.Photos_7.2.0.apk && break
+            echo "Retrying download Google Photos APK..."
+            retry=$((retry + 1))
+            sleep 5
+          done
+          if [ $retry -eq $max_retries ]; then
+            echo "Failed to download Google Photos APK after $max_retries attempts."
+            exit 1
+          fi
 
-      - name: Download ReVanced Integrations
+      # Étape 3: Télécharger ReVanced CLI, Patches, et Integrations
+      - name: Download ReVanced CLI, Patches, and Integrations
         run: |
-          curl -L -o revanced-integrations.apk https://github.com/ReVanced/revanced-integrations/releases/download/v1.16.0-dev.4/revanced-integrations-1.16.0-dev.4.apk && break
-          sleep 5
+          retry=0
+          max_retries=5
+          while [ $retry -lt $max_retries ]; do
+            curl -L -o revanced-cli.jar https://github.com/ReVanced/revanced-cli/releases/download/v4.6.0/revanced-cli-4.6.0-all.jar && break
+            echo "Retrying download ReVanced CLI..."
+            retry=$((retry + 1))
+            sleep 5
+          done
+          if [ $retry -eq $max_retries ]; then
+            echo "Failed to download ReVanced CLI after $max_retries attempts."
+            exit 1
+          fi
 
-      - name: Download APK
-        run: |
-          curl -L -o google_photos_clean.apk https://github.com/CreepsoOff/google_photo_revanced/releases/download/dev0.1/Google.Photos_7.2.0.apk && break
-          sleep 5
+          retry=0
+          while [ $retry -lt $max_retries ]; do
+            curl -L -o revanced-patches.jar https://github.com/ReVanced/revanced-patches/releases/download/v4.17.0-dev.5/revanced-patches-4.17.0-dev.5.jar && break
+            echo "Retrying download ReVanced Patches..."
+            retry=$((retry + 1))
+            sleep 5
+          done
+          if [ $retry -eq $max_retries ]; then
+            echo "Failed to download ReVanced Patches after $max_retries attempts."
+            exit 1
+          fi
 
-      - name: Patch APK
+          retry=0
+          while [ $retry -lt $max_retries ]; do
+            curl -L -o revanced-integrations.apk https://github.com/ReVanced/revanced-integrations/releases/download/v1.16.0-dev.4/revanced-integrations-1.16.0-dev.4.apk && break
+            echo "Retrying download ReVanced Integrations..."
+            retry=$((retry + 1))
+            sleep 5
+          done
+          if [ $retry -eq $max_retries ]; then
+            echo "Failed to download ReVanced Integrations after $max_retries attempts."
+            exit 1
+          fi
+
+      # Étape 4: Patcher l'APK Google Photos
+      - name: Patch Google Photos APK
         run: |
           java -jar revanced-cli.jar patch \
             --patch-bundle revanced-patches.jar \
             -o patched_google_photos.apk \
-            -d \
-            google_photos_clean.apk
+            google_photos_clean.apk \
+            --merge revanced-integrations.apk
           echo "Patched APK created: patched_google_photos.apk"
 
       - name: Create output dir
