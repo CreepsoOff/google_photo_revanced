@@ -1,6 +1,6 @@
 # Google Photo Revanced Patched
 
-![GitHub Workflow Status](https://github.com/yourusername/Google-Photo-Revanced-Patched/actions/workflows/main.yml/badge.svg) <!-- Replace 'yourusername' with your GitHub username -->
+![GitHub Workflow Status](https://github.com/CreepsoOff/google_photo_revanced/actions/workflows/main.yml/badge.svg) 
 
 ## Overview
 
