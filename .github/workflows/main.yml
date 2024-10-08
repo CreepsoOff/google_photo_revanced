@@ -82,9 +82,9 @@ jobs:
         java -jar revanced-cli.jar patch \
           --patch-bundle revanced-patches.jar \
           -o patched_google_photos.apk \
-          -d \
-          --merge \
-          google_photos_clean.apk
+          google_photos_clean.apk \
+          --merge revanced-integrations.apk
+
 
     # Étape 5: Créer une release avec l'APK patché
     - name: Create GitHub Release
