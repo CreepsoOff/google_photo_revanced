@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master
-
+      
 permissions:
   actions: write
   checks: write
@@ -20,56 +20,123 @@ permissions:
   security-events: write
   statuses: write
 
+
 jobs:
+  tag:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Create tag
+        id: create_tag
+        run: |
+          TAG_NAME=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ steps.create_tag.outputs.tag_name }}
+          tag: ${{ steps.create_tag.outputs.tag_name }}
+          body: "Release corresponding to commit ${{ github.sha }}."
+          omitBodyDuringUpdate: true
+          token: ${{ secrets.GITHUB_TOKEN }}
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Download Revanced CLI
-        run: |
-          curl -L -o revanced-cli.jar https://github.com/ReVanced/revanced-cli/releases/download/v4.6.0/revanced-cli-4.6.0-all.jar && break
-          # Retry if download fails
-          sleep 5
+    # Étape 1: Installer Java
+    - name: Set up Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: '17'
 
-      - name: Download Revanced Patches
-        run: |
-          curl -L -o revanced-patches.jar https://github.com/ReVanced/revanced-patches/releases/download/v4.17.0-dev.5/revanced-patches-4.17.0-dev.5.jar && break
-          sleep 5
-
-      - name: Download Revanced Integrations
-        run: |
-          curl -L -o revanced-integrations.apk https://github.com/ReVanced/revanced-integrations/releases/download/v1.16.0-dev.4/revanced-integrations-1.16.0-dev.4.apk && break
-          sleep 5
-
-      - name: Download APK
-        run: |
+    # Étape 2: Télécharger l'APK Google Photos
+    - name: Download Google Photos APK
+      run: |
+        retry=0
+        max_retries=5
+        while [ $retry -lt $max_retries ]; do
           curl -L -o google_photos_clean.apk https://github.com/CreepsoOff/google_photo_revanced/releases/download/dev0.1/Google.Photos_7.2.0.apk && break
+          echo "Retrying download Google Photos APK..."
+          retry=$((retry + 1))
           sleep 5
+        done
+        if [ $retry -eq $max_retries ]; then
+          echo "Failed to download Google Photos APK after $max_retries attempts."
+          exit 1
+        fi
 
-      - name: Patch APK
-        run: |
-          TAG_NAME=$(echo "${GITHUB_SHA}" | cut -c1-7)  # Prend les 7 premiers caractères du SHA
-          java -jar revanced-cli.jar patch \
-            --patch-bundle revanced-patches.jar \
-            -o patched_google_photos.apk \
-            -d \
-            google_photos_clean.apk
-          echo "Patched APK created: patched_google_photos.apk"
-      
-      - name: Create GitHub Release
-        id: create_release
-        run: |
-          TAG_NAME=$(echo "${GITHUB_SHA}" | cut -c1-7)  # Utilise le même TAG_NAME
-          gh release create "$TAG_NAME" ./patched_google_photos.apk --title "Patched Google Photos" --notes "Release for $TAG_NAME"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # Étape 3: Télécharger ReVanced CLI, Patches, et Integrations
+    - name: Download ReVanced CLI, Patches, and Integrations
+      run: |
+        retry=0
+        max_retries=5
+        while [ $retry -lt $max_retries ]; do
+          curl -L -o revanced-cli.jar https://github.com/ReVanced/revanced-cli/releases/download/v4.6.0/revanced-cli-4.6.0-all.jar && break
+          echo "Retrying download ReVanced CLI..."
+          retry=$((retry + 1))
+          sleep 5
+        done
+        if [ $retry -eq $max_retries ]; then
+          echo "Failed to download ReVanced CLI after $max_retries attempts."
+          exit 1
+        fi
 
-      - name: Upload Patched APK
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./patched_google_photos.apk
-          asset_name: patched_google_photos.apk
-          asset_content_type: application/vnd.android.package-archive
+        retry=0
+        while [ $retry -lt $max_retries ]; do
+          curl -L -o revanced-patches.jar https://github.com/ReVanced/revanced-patches/releases/download/v4.17.0-dev.5/revanced-patches-4.17.0-dev.5.jar && break
+          echo "Retrying download ReVanced Patches..."
+          retry=$((retry + 1))
+          sleep 5
+        done
+        if [ $retry -eq $max_retries ]; then
+          echo "Failed to download ReVanced Patches after $max_retries attempts."
+          exit 1
+        fi
+
+        retry=0
+        while [ $retry -lt $max_retries ]; do
+          curl -L -o revanced-integrations.apk https://github.com/ReVanced/revanced-integrations/releases/download/v1.16.0-dev.4/revanced-integrations-1.16.0-dev.4.apk && break
+          echo "Retrying download ReVanced Integrations..."
+          retry=$((retry + 1))
+          sleep 5
+        done
+        if [ $retry -eq $max_retries ]; then
+          echo "Failed to download ReVanced Integrations after $max_retries attempts."
+          exit 1
+        fi
+
+    # Étape 4: Patcher l'APK Google Photos
+    - name: Patch Google Photos APK
+      run: |
+        java -jar revanced-cli.jar patch \
+          --patch-bundle revanced-patches.jar \
+          -o patched_google_photos.apk \
+          google_photos_clean.apk \
+          --merge revanced-integrations.apk
+
+
+    # Étape 5: Créer une release avec l'APK patché
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ github.sha }}
+        release_name: "Patched Google Photos"
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ajout du token d'authentification
+
+
+    # Étape 6: Uploader l'APK patché dans la release
+    - name: Upload Patched APK
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./patched_google_photos.apk
+        asset_name: patched_google_photos.apk
+        asset_content_type: application/vnd.android.package-archive
