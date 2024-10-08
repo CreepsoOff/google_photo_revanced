@@ -42,7 +42,7 @@ jobs:
         retry=0
         max_retries=5
         while [ $retry -lt $max_retries ]; do
-          curl -L -o revanced-cli.jar https://github.com/revanced/revanced-cli/releases/download/v3.0.0/revanced-cli-3.0.0-all.jar && break
+          curl -L -o revanced-cli.jar https://github.com/ReVanced/revanced-cli/releases/download/v4.6.0/revanced-cli-4.6.0-all.jar && break
           echo "Retrying download ReVanced CLI..."
           retry=$((retry + 1))
           sleep 5
@@ -54,7 +54,7 @@ jobs:
 
         retry=0
         while [ $retry -lt $max_retries ]; do
-          curl -L -o revanced-patches.jar https://github.com/revanced/revanced-patches/releases/download/v3.0.0/revanced-patches-3.0.0.jar && break
+          curl -L -o revanced-patches.jar https://github.com/ReVanced/revanced-patches/releases/download/v4.17.0-dev.5/revanced-patches-4.17.0-dev.5.jar && break
           echo "Retrying download ReVanced Patches..."
           retry=$((retry + 1))
           sleep 5
@@ -66,7 +66,7 @@ jobs:
 
         retry=0
         while [ $retry -lt $max_retries ]; do
-          curl -L -o revanced-integrations.apk https://github.com/revanced/revanced-integrations/releases/download/v0.0.99/revanced-integrations-0.0.99.apk && break
+          curl -L -o revanced-integrations.apk https://github.com/ReVanced/revanced-integrations/releases/download/v1.16.0-dev.4/revanced-integrations-1.16.0-dev.4.apk && break
           echo "Retrying download ReVanced Integrations..."
           retry=$((retry + 1))
           sleep 5
@@ -79,7 +79,7 @@ jobs:
     # Étape 4: Patcher l'APK Google Photos
     - name: Patch Google Photos APK
       run: |
-        java -jar revanced-cli.jar \
+        java -jar revanced-cli.jar patch \
           -a google_photos_clean.apk \
           -o patched_google_photos.apk \
           -b revanced-patches.jar \
