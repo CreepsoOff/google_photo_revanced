@@ -17,20 +17,17 @@ jobs:
         with:
           java-version: '17'
 
-      # Étape 2: Installer Python et Requests
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      - name: Install Requests
+      # Étape 2: Télécharger l'APK Google Photos
+      - name: Download Google Photos APK
         run: |
-          python -m pip install requests
+          curl -L -o google_photos_clean.apk https://github.com/CreepsoOff/google_photo_revanced/releases/download/dev0.1/Google.Photos_7.2.0.apk
 
-      # Étape 3: Télécharger l'APK Google Photos avec le script Python
-      - name: Download Google Photos APK and ReVanced tools
+      # Étape 3: Télécharger ReVanced CLI, Patches, et Integrations
+      - name: Download ReVanced CLI, Patches, and Integrations
         run: |
-          python download_apk.py
+          curl -L -o revanced-cli.jar https://github.com/ReVanced/revanced-cli/releases/download/v4.6.0/revanced-cli-4.6.0-all.jar
+          curl -L -o revanced-patches.jar https://github.com/ReVanced/revanced-patches/releases/download/v4.17.0-dev.5/revanced-patches-4.17.0-dev.5.jar
+          curl -L -o revanced-integrations.apk https://github.com/ReVanced/revanced-integrations/releases/download/v1.16.0-dev.4/revanced-integrations-1.16.0-dev.4.apk
 
       # Étape 4: Patcher l'APK Google Photos
       - name: Patch Google Photos APK
@@ -38,7 +35,7 @@ jobs:
           java -jar revanced-cli.jar patch \
             --patch-bundle revanced-patches.jar \
             -o patched_google_photos.apk \
-            com.google.android.apps.photos.apk \
+            google_photos_clean.apk \
             --merge revanced-integrations.apk
 
       # Étape 5: Lire la version depuis version.txt
