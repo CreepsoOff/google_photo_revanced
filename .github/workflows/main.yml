@@ -80,11 +80,11 @@ jobs:
     - name: Patch Google Photos APK
       run: |
         java -jar revanced-cli.jar patch \
-          -a google_photos_clean.apk \
+          --patch-bundle revanced-patches.jar \
           -o patched_google_photos.apk \
-          -b revanced-patches.jar \
-          -m revanced-integrations.apk \
-          -i spoof-features-patch
+          -d \
+          --merge \
+          google_photos_clean.apk
 
     # Étape 5: Créer une release avec l'APK patché
     - name: Create GitHub Release
