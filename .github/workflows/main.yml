@@ -20,14 +20,18 @@ jobs:
       # Étape 2: Télécharger l'APK Google Photos
       - name: Download Google Photos APK
         run: |
-          curl -L -o google_photos_clean.apk https://github.com/CreepsoOff/google_photo_revanced/releases/download/dev0.1/Google.Photos_7.2.0.apk
+          curl -L -o google_photos_clean.apk "https://d.apkpure.com/b/APK/com.google.android.apps.photos?version=latest"
 
       # Étape 3: Télécharger ReVanced CLI, Patches, et Integrations
       - name: Download ReVanced CLI, Patches, and Integrations
         run: |
-          curl -L -o revanced-cli.jar https://github.com/ReVanced/revanced-cli/releases/download/v4.6.0/revanced-cli-4.6.0-all.jar
-          curl -L -o revanced-patches.jar https://github.com/ReVanced/revanced-patches/releases/download/v4.17.0-dev.5/revanced-patches-4.17.0-dev.5.jar
-          curl -L -o revanced-integrations.apk https://github.com/ReVanced/revanced-integrations/releases/download/v1.16.0-dev.4/revanced-integrations-1.16.0-dev.4.apk
+          revanced_cli_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-cli/releases/latest | jq -r '.assets[] | select(.name | test("revanced-cli.*.jar")) | .browser_download_url')
+          revanced_patches_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-patches/releases/latest | jq -r '.assets[] | select(.name | test("revanced-patches.*.jar")) | .browser_download_url')
+          revanced_integrations_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-integrations/releases/latest | jq -r '.assets[] | select(.name | test("revanced-integrations.*.apk")) | .browser_download_url')
+
+          curl -L -o revanced-cli.jar "$revanced_cli_url"
+          curl -L -o revanced-patches.jar "$revanced_patches_url"
+          curl -L -o revanced-integrations.apk "$revanced_integrations_url"
 
       # Étape 4: Patcher l'APK Google Photos
       - name: Patch Google Photos APK
