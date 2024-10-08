@@ -17,26 +17,20 @@ jobs:
         with:
           java-version: '17'
 
-      # Étape 2: Télécharger l'APK Google Photos
-      - name: Download Google Photos APK
+      # Étape 2: Installer Python et Requests
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Requests
         run: |
-          curl -L -o google_photos_clean.apk "https://d.apkpure.com/b/APK/com.google.android.apps.photos?version=latest"
+          python -m pip install requests
 
-      # Étape 3: Télécharger ReVanced CLI, Patches, et Integrations
-      - name: Download ReVanced CLI, Patches, and Integrations
+      # Étape 3: Télécharger l'APK Google Photos avec le script Python
+      - name: Download Google Photos APK and ReVanced tools
         run: |
-          revanced_cli_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-cli/releases/latest | jq -r '.assets[] | select(.name | test("revanced-cli.*.jar")) | .browser_download_url')
-          revanced_patches_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-patches/releases/latest | jq -r '.assets[] | select(.name | test("revanced-patches.*.jar")) | .browser_download_url')
-          revanced_integrations_url=$(curl -s https://api.github.com/repos/ReVanced/revanced-integrations/releases/latest | jq -r '.assets[] | select(.name | test("revanced-integrations.*.apk")) | .browser_download_url')
-
-          if [[ -z "$revanced_cli_url" || -z "$revanced_patches_url" || -z "$revanced_integrations_url" ]]; then
-            echo "One or more URLs are missing."
-            exit 1
-          fi
-
-          curl -L -o revanced-cli.jar "$revanced_cli_url"
-          curl -L -o revanced-patches.jar "$revanced_patches_url"
-          curl -L -o revanced-integrations.apk "$revanced_integrations_url"
+          python download_apk.py
 
       # Étape 4: Patcher l'APK Google Photos
       - name: Patch Google Photos APK
@@ -44,7 +38,7 @@ jobs:
           java -jar revanced-cli.jar patch \
             --patch-bundle revanced-patches.jar \
             -o patched_google_photos.apk \
-            google_photos_clean.apk \
+            com.google.android.apps.photos.apk \
             --merge revanced-integrations.apk
 
       # Étape 5: Lire la version depuis version.txt
